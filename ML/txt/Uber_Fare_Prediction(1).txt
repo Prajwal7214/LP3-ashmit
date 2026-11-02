@@ -1,0 +1,243 @@
+### Code Cell
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+### Code Cell
+from google.colab import files
+uploaded = files.upload()
+dataset = pd.read_csv("uber.csv")
+
+### Code Cell
+dataset.head()
+
+### Code Cell
+dataset.shape
+
+### Code Cell
+dataset.dtypes
+
+### Code Cell
+dataset.isnull().sum()
+
+### Markdown Cell
+## Preprocess the dataset
+
+### Code Cell
+dataset.drop(
+    columns=["Unnamed: 0", "key"],
+    errors="ignore",
+    inplace=True
+)
+
+dataset.dropna(inplace=True)
+
+dataset["pickup_datetime"] = pd.to_datetime(
+    dataset["pickup_datetime"],
+    errors="coerce",
+    utc=True
+)
+dataset.dropna(subset=["pickup_datetime"], inplace=True)
+
+dataset = dataset[
+    (dataset["fare_amount"] > 0) &
+    (dataset["passenger_count"] > 0) &
+    (dataset["passenger_count"] <= 6) &
+    (dataset["pickup_latitude"].between(-90, 90)) &
+    (dataset["dropoff_latitude"].between(-90, 90)) &
+    (dataset["pickup_longitude"].between(-180, 180)) &
+    (dataset["dropoff_longitude"].between(-180, 180))
+].copy()
+
+dataset.shape
+
+### Code Cell
+dataset["hour"] = dataset["pickup_datetime"].dt.hour
+dataset["day"] = dataset["pickup_datetime"].dt.day
+dataset["month"] = dataset["pickup_datetime"].dt.month
+dataset["year"] = dataset["pickup_datetime"].dt.year
+dataset["day_of_week"] = dataset["pickup_datetime"].dt.dayofweek
+
+### Code Cell
+def haversine(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(
+        np.radians, [lat1, lon1, lat2, lon2]
+    )
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = (
+        np.sin(dlat / 2) ** 2 +
+        np.cos(lat1) * np.cos(lat2) *
+        np.sin(dlon / 2) ** 2
+    )
+    return 6371 * 2 * np.arcsin(np.sqrt(a))
+
+dataset["distance"] = haversine(
+    dataset["pickup_latitude"],
+    dataset["pickup_longitude"],
+    dataset["dropoff_latitude"],
+    dataset["dropoff_longitude"]
+)
+
+dataset = dataset[
+    (dataset["distance"] > 0) &
+    (dataset["distance"] < 100)
+].copy()
+
+dataset.head()
+
+### Markdown Cell
+## Identify and remove outliers (IQR method)
+
+### Code Cell
+Q1 = dataset["fare_amount"].quantile(0.25)
+Q3 = dataset["fare_amount"].quantile(0.75)
+IQR = Q3 - Q1
+
+lower = Q1 - 1.5 * IQR
+upper = Q3 + 1.5 * IQR
+
+outliers = dataset[
+    (dataset["fare_amount"] < lower) |
+    (dataset["fare_amount"] > upper)
+]
+
+outliers.shape
+
+### Code Cell
+sns.boxplot(x=dataset["fare_amount"])
+plt.title("Outlier Detection in Fare Amount")
+plt.show()
+
+### Code Cell
+dataset = dataset[
+    (dataset["fare_amount"] >= lower) &
+    (dataset["fare_amount"] <= upper)
+].copy()
+
+dataset.shape
+
+### Markdown Cell
+## Correlation analysis
+
+### Code Cell
+correlation = dataset.select_dtypes(include=["number"]).corr()
+correlation["fare_amount"].sort_values(ascending=False)
+
+### Code Cell
+plt.figure(figsize=(12, 8))
+sns.heatmap(correlation, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Correlation Heatmap")
+plt.show()
+
+### Markdown Cell
+## Prepare data and split
+
+### Code Cell
+features = [
+    "pickup_longitude", "pickup_latitude",
+    "dropoff_longitude", "dropoff_latitude",
+    "passenger_count", "hour", "day", "month",
+    "year", "day_of_week", "distance"
+]
+
+X = dataset[features]
+y = dataset["fare_amount"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+### Markdown Cell
+## Linear Regression
+
+### Code Cell
+lr = LinearRegression()
+lr.fit(X_train, y_train)
+y_pred_lr = lr.predict(X_test)
+
+### Code Cell
+r2_lr = r2_score(y_test, y_pred_lr)
+rmse_lr = np.sqrt(mean_squared_error(y_test, y_pred_lr))
+mae_lr = mean_absolute_error(y_test, y_pred_lr)
+
+pd.Series({
+    "R2 Score": r2_lr,
+    "RMSE": rmse_lr,
+    "MAE": mae_lr
+})
+
+### Markdown Cell
+## Random Forest Regression
+
+### Code Cell
+rf = RandomForestRegressor(
+    n_estimators=20,
+    max_depth=15,
+    random_state=42,
+    n_jobs=-1
+)
+
+rf.fit(X_train, y_train)
+
+y_pred_rf = rf.predict(X_test)
+
+### Code Cell
+r2_rf = r2_score(y_test, y_pred_rf)
+rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+
+pd.Series({
+    "R2 Score": r2_rf,
+    "RMSE": rmse_rf,
+    "MAE": mae_rf
+})
+
+### Markdown Cell
+## Compare models
+
+### Code Cell
+results = pd.DataFrame({
+    "Model": ["Linear Regression", "Random Forest Regression"],
+    "R2 Score": [r2_lr, r2_rf],
+    "RMSE": [rmse_lr, rmse_rf],
+    "MAE": [mae_lr, mae_rf]
+})
+
+results
+
+### Code Cell
+if r2_rf > r2_lr and rmse_rf < rmse_lr:
+    "Random Forest Regression performs better"
+elif r2_lr > r2_rf and rmse_lr < rmse_rf:
+    "Linear Regression performs better"
+else:
+    "The metrics show mixed performance"
+
+### Markdown Cell
+## Predict fare for a sample ride
+
+### Code Cell
+new_ride = pd.DataFrame([{
+    "pickup_longitude": -73.985,
+    "pickup_latitude": 40.748,
+    "dropoff_longitude": -73.985,
+    "dropoff_latitude": 40.758,
+    "passenger_count": 1,
+    "hour": 14,
+    "day": 2,
+    "month": 11,
+    "year": 2026,
+    "day_of_week": 0,
+    "distance": 1.1
+}])
+
+# Using the successfully fitted Linear Regression model
+# since the Random Forest model training was interrupted.
+lr.predict(new_ride)

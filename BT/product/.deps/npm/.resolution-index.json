@@ -1,0 +1,10 @@
+{
+  "product.sol": {
+    "__sources__": {
+      "product.sol": {
+        "content": "\r\n // SPDX-License-Identifier: UNLICENSED\r\npragma solidity ^0.8.19;\r\n\r\ncontract ProductInventory {\r\n    struct Product {\r\n        uint256 id;\r\n        string name;\r\n        uint256 stock;\r\n    }\r\n\r\n    mapping(uint256 => Product) private products;\r\n\r\n    event ProductReceived(uint256 id, uint256 quantity);\r\n    event ProductSold(uint256 id, uint256 quantity);\r\n\r\n    function addProduct(\r\n        uint256 id,\r\n        string memory name,\r\n        uint256 stock\r\n    ) public {\r\n        require(products[id].id == 0, \"Product exists\");\r\n        products[id] = Product(id, name, stock);\r\n    }\r\n\r\n    function receiveProduct(uint256 id, uint256 quantity) public {\r\n        require(products[id].id != 0, \"Product not found\");\r\n        products[id].stock += quantity;\r\n        emit ProductReceived(id, quantity);\r\n    }\r\n\r\n    function saleProduct(uint256 id, uint256 quantity) public {\r\n        require(products[id].id != 0, \"Product not found\");\r\n        require(products[id].stock >= quantity, \"Insufficient stock\");\r\n        products[id].stock -= quantity;\r\n        emit ProductSold(id, quantity);\r\n    }\r\n\r\n    function displayStock(uint256 id)\r\n        public view returns (uint256)\r\n    {\r\n        require(products[id].id != 0, \"Product not found\");\r\n        return products[id].stock;\r\n    }\r\n}\r\n",
+        "file": "product.sol"
+      }
+    }
+  }
+}

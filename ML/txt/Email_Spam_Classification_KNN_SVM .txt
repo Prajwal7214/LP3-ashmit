@@ -1,0 +1,141 @@
+### Markdown Cell
+## Step 1: Import libraries
+
+### Code Cell
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+### Markdown Cell
+## Step 2: Load dataset
+
+### Code Cell
+from google.colab import files
+uploaded = files.upload()
+dataset = pd.read_csv("emails.csv")
+
+### Markdown Cell
+## Step 3: Inspect dataset
+
+### Code Cell
+dataset.head()
+
+### Code Cell
+dataset.shape
+
+### Code Cell
+dataset.isnull().sum().sum()
+
+### Code Cell
+dataset.columns[:5].tolist()
+
+### Code Cell
+dataset.columns[-5:].tolist()
+
+### Markdown Cell
+## Step 4: Remove missing values
+
+### Code Cell
+dataset = dataset.dropna()
+dataset.shape
+
+### Markdown Cell
+## Step 5: Separate features and target
+
+### Code Cell
+X = dataset.drop(columns=["Email No.", "Prediction"], errors="ignore")
+y = dataset["Prediction"]
+
+### Markdown Cell
+## Step 6: Split into training and testing data
+
+### Code Cell
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=1, stratify=y
+)
+
+### Markdown Cell
+## Step 7: Scale features
+
+### Code Cell
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+### Markdown Cell
+## Step 8: Train KNN model
+
+### Code Cell
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+
+### Markdown Cell
+## Step 9: Predict using KNN
+
+### Code Cell
+y_pred_knn = knn.predict(X_test)
+
+### Markdown Cell
+## Step 10: Evaluate KNN
+
+### Code Cell
+accuracy_score(y_test, y_pred_knn)
+
+### Code Cell
+confusion_matrix(y_test, y_pred_knn)
+
+### Code Cell
+classification_report(y_test, y_pred_knn)
+
+### Markdown Cell
+## Step 11: Train SVM model
+
+### Code Cell
+svm = SVC(kernel="linear")
+svm.fit(X_train, y_train)
+
+### Markdown Cell
+## Step 12: Predict using SVM
+
+### Code Cell
+y_pred_svm = svm.predict(X_test)
+
+### Markdown Cell
+## Step 13: Evaluate SVM
+
+### Code Cell
+accuracy_score(y_test, y_pred_svm)
+
+### Code Cell
+confusion_matrix(y_test, y_pred_svm)
+
+### Code Cell
+classification_report(y_test, y_pred_svm)
+
+### Markdown Cell
+## Step 14: Compare both models
+
+### Code Cell
+knn_accuracy = accuracy_score(y_test, y_pred_knn)
+svm_accuracy = accuracy_score(y_test, y_pred_svm)
+
+comparison = pd.DataFrame({
+    "Model": ["KNN", "SVM"],
+    "Accuracy": [knn_accuracy, svm_accuracy]
+})
+
+comparison
+
+### Markdown Cell
+## Step 15: Best model based on accuracy
+
+### Code Cell
+if knn_accuracy > svm_accuracy:
+    display("KNN performs better based on accuracy.")
+elif svm_accuracy > knn_accuracy:
+    display("SVM performs better based on accuracy.")
+else:
+    display("Both models have equal accuracy.")

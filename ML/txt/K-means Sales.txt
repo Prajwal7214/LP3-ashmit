@@ -1,0 +1,157 @@
+### Markdown Cell
+# K-Means Clustering on Sales Data
+
+### Markdown Cell
+## 1. Import required libraries
+
+### Code Cell
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+### Markdown Cell
+## 2. Upload and load the CSV dataset
+
+Run this cell in Google Colab and select your sales CSV file (for example, `sales_data_sample.csv`).
+
+### Code Cell
+from google.colab import files
+
+uploaded = files.upload()
+csv_filename = next(iter(uploaded))
+
+df = pd.read_csv(csv_filename, encoding="latin1")
+
+print("Loaded file:", csv_filename)
+display(df.head())
+
+### Markdown Cell
+## 3. Display basic information
+
+### Code Cell
+print("Dataset shape:", df.shape)
+print("\nMissing values:")
+display(df.isnull().sum())
+
+### Markdown Cell
+## 4. Select numerical sales-related features
+
+### Code Cell
+candidate_features = [
+    "SALES",
+    "QUANTITYORDERED",
+    "PRICEEACH",
+    "MSRP"
+]
+
+features = [col for col in candidate_features if col in df.columns]
+
+if len(features) < 2:
+    raise ValueError(
+        "Dataset must contain at least two of these columns: "
+        "SALES, QUANTITYORDERED, PRICEEACH, MSRP"
+    )
+
+X = df[features].copy()
+
+print("Selected features:", features)
+display(X.head())
+
+### Markdown Cell
+## 5. Handle missing values
+
+### Code Cell
+X = X.fillna(X.median())
+
+print("Missing values after handling:")
+display(X.isnull().sum())
+
+### Markdown Cell
+## 6. Scale the features
+
+### Code Cell
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+print("Data normalization completed.")
+
+### Markdown Cell
+## 7. Apply the Elbow Method
+
+### Code Cell
+inertia = []
+K_range = range(1, 11)
+
+for k in K_range:
+    model = KMeans(
+        n_clusters=k,
+        random_state=42,
+        n_init=10
+    )
+    model.fit(X_scaled)
+    inertia.append(model.inertia_)
+
+### Markdown Cell
+## 8. Plot the Elbow curve
+
+### Code Cell
+plt.plot(K_range, inertia, marker="o")
+plt.xlabel("Number of Clusters (K)")
+plt.ylabel("Inertia")
+plt.title("Elbow Method")
+plt.xticks(list(K_range))
+plt.grid(True)
+plt.show()
+
+### Markdown Cell
+## 9. Choose K
+
+Inspect the elbow plot and set `optimal_k` to the number of clusters at the elbow.
+
+### Code Cell
+optimal_k = 3  # Change this after inspecting the elbow plot
+
+### Markdown Cell
+## 10. Train the final K-Means model
+
+### Code Cell
+kmeans = KMeans(
+    n_clusters=optimal_k,
+    random_state=42,
+    n_init=10
+)
+
+df["Cluster"] = kmeans.fit_predict(X_scaled)
+
+print("K-Means model trained successfully.")
+
+### Markdown Cell
+## 11. Display cluster assignments
+
+### Code Cell
+display(df[features + ["Cluster"]].head())
+
+### Markdown Cell
+## 12. Visualize clusters using the first two selected features
+
+### Code Cell
+plt.scatter(
+    X_scaled[:, 0],
+    X_scaled[:, 1],
+    c=df["Cluster"],
+    cmap="viridis",
+    alpha=0.7
+)
+
+plt.xlabel(features[0] + " (scaled)")
+plt.ylabel(features[1] + " (scaled)")
+plt.title(f"K-Means Clustering (K={optimal_k})")
+plt.show()
+
+### Markdown Cell
+## 13. Number of records in each cluster
+
+### Code Cell
+df["Cluster"].value_counts().sort_index()

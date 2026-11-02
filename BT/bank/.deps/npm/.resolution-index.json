@@ -1,0 +1,10 @@
+{
+  "bank.sol": {
+    "__sources__": {
+      "bank.sol": {
+        "content": "\r\n // SPDX-License-Identifier: UNLICENSED\r\npragma solidity ^0.8.19;\r\n\r\ncontract BankAccount {\r\n    mapping(address => uint256) private balances;\r\n    mapping(address => bool) private isUser;\r\n\r\n    event AccountCreated(address user, uint256 amount);\r\n    event Deposit(address user, uint256 amount);\r\n    event Withdraw(address user, uint256 amount);\r\n\r\n    function createAccount() public payable {\r\n        require(!isUser[msg.sender], \"Account exists\");\r\n        isUser[msg.sender] = true;\r\n        balances[msg.sender] = msg.value;\r\n        emit AccountCreated(msg.sender, msg.value);\r\n    }\r\n\r\n    function deposit() public payable {\r\n        require(isUser[msg.sender], \"No account\");\r\n        require(msg.value > 0, \"Amount > 0\");\r\n        balances[msg.sender] += msg.value;\r\n        emit Deposit(msg.sender, msg.value);\r\n    }\r\n\r\n    function withdraw(uint256 amount) public {\r\n        require(isUser[msg.sender], \"No account\");\r\n        require(balances[msg.sender] >= amount, \"Low balance\");\r\n        balances[msg.sender] -= amount;\r\n        payable(msg.sender).transfer(amount);\r\n        emit Withdraw(msg.sender, amount);\r\n    }\r\n\r\n    function showBalance() public view returns (uint256) {\r\n        require(isUser[msg.sender], \"No account\");\r\n        return balances[msg.sender];\r\n    }\r\n}\r\n",
+        "file": "bank.sol"
+      }
+    }
+  }
+}
